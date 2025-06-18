@@ -11,9 +11,19 @@
       background: url('kalimat/blank.png') no-repeat center center fixed;
       background-size: cover;
     }
+    #dim-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
+  <div id="dim-overlay"></div>
   <script>
     const API_URL = 'https://live-test.muhammedkarim.workers.dev/';
     let isLive = false;
