@@ -19,6 +19,7 @@
       height: 100vh;
       background: rgba(0, 0, 0, 0.8);
       pointer-events: none;
+      display: none;
     }
   </style>
 </head>
@@ -33,6 +34,9 @@
       fetch(API_URL)
         .then(res => res.json())
         .then(status => {
+          const dimOverlay = document.getElementById('dim-overlay');
+          const shouldShowDim = status.isLive && status.kalimat !== 'blank';
+          dimOverlay.style.display = shouldShowDim ? 'block' : 'none';
           if (status.isLive) startKalimatPolling();
           else stopKalimatPolling();
         })
@@ -90,6 +94,7 @@
       img.src = timestampedUrl;
     }
 
+    checkLiveStatus();
     setInterval(checkLiveStatus, 5000);
   </script>
 </body>
