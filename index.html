@@ -94,8 +94,21 @@
       img.src = timestampedUrl;
     }
 
+    let currentVersion = null;
+    function checkVersionAndReload() {
+      fetch(`version.json?t=${Date.now()}`)
+        .then(res => res.json())
+        .then(data => {
+          if (currentVersion && data.version !== currentVersion) {
+            location.reload(true);
+          }
+          currentVersion = data.version;
+        });
+    }
+
     checkLiveStatus();
     setInterval(checkLiveStatus, 5000);
+    setInterval(checkVersionAndReload, 60000);
   </script>
 </body>
 </html>
