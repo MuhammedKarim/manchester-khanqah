@@ -2,113 +2,87 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Kalimat</title>
-  <style>
-    html, body {
-      cursor: none;
-      height: 100%;
-      margin: 0;
-      background: url('kalimat/blank.png') no-repeat center center fixed;
-      background-size: cover;
-    }
-    #dim-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.6);
-      pointer-events: none;
-      display: none;
-    }
-  </style>
+  <title>Prayer Times</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <div class="container">
+
+    <div class="top">
+      <div class="clock" id="current-time">12:00</div>
+      <div class="date" id="current-date">Monday 1st January</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="prayers">
+      <div class="prayer-header-row">
+        <div class="prayer-name"></div>
+        <div class="prayer-time">START</div>
+        <div class="prayer-time">JAMAT</div>
+      </div>
+      <div class="prayer-row">
+        <div class="prayer-name">FAJR</div>
+        <div class="prayer-time" id="fajr-start">12:00</div>
+        <div class="jamat-time" id="fajr-jamat">12:00</div>
+      </div>
+      <div class="prayer-row">
+        <div class="prayer-name">SUNRISE</div>
+        <div class="prayer-time" id="sunrise-start">12:00</div>
+        <div class="jamat-time">-</div>
+      </div>
+      <div class="prayer-row">
+        <div class="prayer-name" id="dhuhr-label">DHUHR</div>
+        <div class="prayer-time" id="dhuhr-start">12:00</div>
+        <div class="jamat-time" id="dhuhr-jamat">12:00</div>
+      </div>
+      <div class="prayer-row">
+        <div class="prayer-name">ASR</div>
+        <div class="prayer-time" id="asr-start">12:00</div>
+        <div class="jamat-time" id="asr-jamat">12:00</div>
+      </div>
+      <div class="prayer-row">
+        <div class="prayer-name">MAGHRIB</div>
+        <div class="prayer-time" id="maghrib-start">12:00</div>
+        <div class="jamat-time" id="maghrib-jamat">12:00</div>
+      </div>
+      <div class="prayer-row">
+        <div class="prayer-name">ISHA</div>
+        <div class="prayer-time" id="isha-start">12:00</div>
+        <div class="jamat-time" id="isha-jamat">12:00</div>
+      </div>
+    </div>
+
+  </div>
+  
+  <div id="poster-overlay" style="display: none;">
+    <img src="" alt="Poster" class="poster-img">
+  </div>
+
+  <div id="kalimat-overlay">
+    <img class="kalimat-img" alt="Kalimat">
+  </div>
+
   <div id="dim-overlay"></div>
+  
   <script>
-    const API_URL = 'https://live-status.muhammedkarim.workers.dev/';
-    let isLive = false;
-    let intervalId = null;
+    const timestamp = Date.now();
 
-    function checkLiveStatus() {
-      fetch(API_URL)
-        .then(res => res.json())
-        .then(status => {
-          const dimOverlay = document.getElementById('dim-overlay');
-          const shouldShowDim = status.isLive && status.kalimat !== 'blank';
-          dimOverlay.style.display = shouldShowDim ? 'block' : 'none';
-          if (status.isLive) startKalimatPolling();
-          else stopKalimatPolling();
-        })
-        .catch(err => {
-          console.error('Failed to fetch live status:', err);
-        });
-    }
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = `style.css?t=${timestamp}`;
+    document.head.appendChild(css);
 
-    let currentKalimat = null;
-    let kalimatInterval = null;
-
-    function fetchKalimatStatus() {
-      fetch(API_URL)
-        .then(res => res.json())
-        .then(status => {
-          if (!status.isLive || !status.kalimat) {
-            setBackground('blank');
-            currentKalimat = null;
-          }
-          if (status.kalimat !== currentKalimat) {
-            setBackground(status.kalimat || 'blank');
-            currentKalimat = status.kalimat;
-          }
-        })
-        .catch(err => {
-          console.error('Failed to fetch kalimat:', err);
-        });
-    }
-
-    function startKalimatPolling() {
-      if (!kalimatInterval) kalimatInterval = setInterval(fetchKalimatStatus, 1000);
-    }
-
-    function stopKalimatPolling() {
-      clearInterval(kalimatInterval);
-      kalimatInterval = null;
-      if (currentKalimat !== null) {
-        currentKalimat = null;
-        setBackground('blank');
+    const js = document.createElement('script');
+    js.src = `script.js?t=${timestamp}`;
+      js.onload = () => {
+      if (typeof initPrayerTimes === 'function') {
+        initPrayerTimes();
       }
-    }
-
-    function setBackground(imageName) {
-      const timestampedUrl = `kalimat/${imageName}.png?t=${Date.now()}`;
-      const img = new Image();
-
-      img.onload = () => {
-        document.body.style.backgroundImage = `url('${timestampedUrl}')`;
-      };
-
-      img.onerror = () => {
-        document.body.style.backgroundImage = "url('kalimat/blank.png')";
-      };
-
-      img.src = timestampedUrl;
-    }
-
-    let currentVersion = null;
-    function checkVersionAndReload() {
-      fetch(`version.json?t=${Date.now()}`)
-        .then(res => res.json())
-        .then(data => {
-          if (currentVersion && data.version !== currentVersion) {
-            location.reload(true);
-          }
-          currentVersion = data.version;
-        });
-    }
-
-    checkLiveStatus();
-    setInterval(checkLiveStatus, 5000);
-    setInterval(checkVersionAndReload, 60000);
+    };
+    document.body.appendChild(js);
   </script>
+  
 </body>
 </html>
