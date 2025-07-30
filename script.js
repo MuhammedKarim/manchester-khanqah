@@ -30,7 +30,9 @@ function initPrayerTimes() {
     else if (day === 3 || day === 23) suffix = 'rd';
   
     const formattedDate = `${weekday} ${day}${suffix} ${month}`;
+    var nowH = umalqura();
     document.getElementById('current-date').textContent = formattedDate.toUpperCase();
+    document.getElementById('arabic-date').textContent = nowH.format('d MMMM yyyy').toUpperCase() + ' AH';
   }
   
   function isJumuahPeriod(todayStr) {
@@ -130,8 +132,8 @@ function initPrayerTimes() {
     const day = now.getDay();
     const minutes = now.getHours() * 60 + now.getMinutes();
 
-    if (day === 4 && minutes >= 1260) return true;
-    if (day === 5 && minutes <= 840) return true;
+    // if (day === 4 && minutes >= 1260) return true;
+    // if (day === 5 && minutes <= 840) return true;
     return false;
   }
 
