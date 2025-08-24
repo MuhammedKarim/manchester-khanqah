@@ -195,7 +195,7 @@ function initPrayerTimes() {
         overlay.style.display = 'none';
         posterIndex++;
       }, 1500);
-    }, 10000);
+    }, 30000);
   }
   
   let posterCycleInterval = null;
