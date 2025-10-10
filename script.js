@@ -252,7 +252,7 @@ function initPrayerTimes() {
   }
 
   function checkLiveStatusAndToggleOverlay() {
-    fetch('https://test-status.muhammedkarim.workers.dev')
+    fetch('https://live-test.muhammedkarim.workers.dev')
       .then(res => res.json())
       .then(status => {
         const dimOverlay = document.getElementById('dim-overlay');
@@ -276,7 +276,7 @@ function initPrayerTimes() {
   let kalimatInterval = null;
 
   function fetchKalimatStatus() {
-    fetch('https://test-status.muhammedkarim.workers.dev')
+    fetch('https://live-test.muhammedkarim.workers.dev')
       .then(res => res.json())
       .then(status => {
         const kalimatOverlay = document.getElementById('kalimat-overlay');
