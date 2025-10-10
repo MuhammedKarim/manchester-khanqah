@@ -376,6 +376,7 @@ function initPrayerTimes() {
   setInterval(updateClock, 1000);
   setInterval(loadPrayerTimes, 1000);
   setInterval(checkMakroohPoster, 1000);
+  setInterval(checkFridayDuroodOverlay, 1000);
   setInterval(fetchPrayerTimes, 300000);
   setInterval(refreshPosters, 300000);
   setInterval(checkLiveStatusAndToggleOverlay, 5000);
