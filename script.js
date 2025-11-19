@@ -122,6 +122,40 @@ function initPrayerTimes() {
     });
   }
 
+  let dhikrData = null;
+
+  function parseHHMMToToday(hhmm) {
+    if (!hhmm) return null;
+    const [h, m] = hhmm.split(":").map(Number);
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+  }
+
+  function getDisplayTime(slot) {
+    if (!dhikrData) return null;
+    const todayVal = dhikrData.today[slot];
+    const tomorrowVal = dhikrData.tomorrow[slot];
+    if (!todayVal) return tomorrowVal || null;
+    const now = new Date();
+    const todayTime = parseHHMMToToday(todayVal);
+    const fifteens = 15 * 60 * 1000;
+    if (now - todayTime >= fifteens) return tomorrowVal || todayVal;
+    return todayVal;
+  }
+
+  function checkDhikr() {
+    fetch('https://sufi.org.uk/live-dzp', { cache: "no-store" })
+      .then(res => res.json())
+      .then(status => {
+        dhikrData = status;
+        if (!dhikrData) return;
+        document.getElementById("dhikr-morning").textContent = formatTo12Hour(getDisplayTime("morning")) || "00:00";
+        document.getElementById("dhikr-evening").textContent = formatTo12Hour(getDisplayTime("evening")) || "00:00";
+        // document.getElementById("dhikr-night").textContent =  formatTo12Hour(getDisplayTime("night")) || "00:00";
+      })
+      .catch(err => console.error("Dhikr fetch error:", err));
+  }
+
 
   const MAX_POSTERS = 5;
   let posterImages = [];
@@ -292,6 +326,7 @@ function initPrayerTimes() {
         }
 
         if (status.kalimat !== currentKalimat) {
+          if (status.kalimat == 'blank' && currentKalimat == "Dua") status.kalimat = null
           const kalimatPath = `kalimat/${status.kalimat}.jpg?t=${Date.now()}`;
           const img = new Image();
           img.onload = () => {
@@ -417,12 +452,14 @@ function initPrayerTimes() {
   fetchPrayerTimes();
   updateClock();
   loadPrayerTimes();
+  checkDhikr();
   checkMakroohPoster();
   preloadAndCheckPosters();
   checkLiveStatusAndToggleOverlay();
   
   setInterval(updateClock, 1000);
   setInterval(loadPrayerTimes, 1000);
+  setInterval(checkDhikr, 60000);
   setInterval(checkMakroohPoster, 1000);
   setInterval(checkFridayDuroodOverlay, 1000);
   setInterval(fetchPrayerTimes, 300000);
