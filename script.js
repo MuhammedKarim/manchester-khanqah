@@ -156,6 +156,22 @@ function initPrayerTimes() {
       .catch(err => console.error("Dhikr fetch error:", err));
   }
 
+  let lastAnnouncement = '';
+
+  function fetchAnnouncement() {
+    fetch(`announcement.txt?t=${Date.now()}`)
+      .then(response => response.text())
+      .then(text => {
+        if (text.trim() !== lastAnnouncement) {
+          lastAnnouncement = text.trim();
+          const announcementEl = document.getElementById('announcement-text');
+          announcementEl.textContent = lastAnnouncement;
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load announcement:', err);
+      });
+  }
 
   const MAX_POSTERS = 5;
   let posterImages = [];
@@ -455,6 +471,7 @@ function initPrayerTimes() {
   updateClock();
   loadPrayerTimes();
   checkDhikr();
+  fetchAnnouncement();
   checkMakroohPoster();
   preloadAndCheckPosters();
   checkLiveStatusAndToggleOverlay();
@@ -465,6 +482,7 @@ function initPrayerTimes() {
   setInterval(checkMakroohPoster, 1000);
   setInterval(checkFridayDuroodOverlay, 1000);
   setInterval(fetchPrayerTimes, 300000);
+  setInterval(fetchAnnouncement, 60000);
   setInterval(refreshPosters, 300000);
   setInterval(checkLiveStatusAndToggleOverlay, 5000);
   setInterval(checkVersionAndReload, 60000);

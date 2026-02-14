@@ -134,6 +134,36 @@ body {
   font-size: 3.3vh;
 }
 
+#announcement-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 6vh;
+  background: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+}
+
+.scrolling-text {
+  white-space: nowrap;
+  color: black;
+  font-size: 3vh;
+  animation: scroll-left 20s linear infinite;
+  padding-left: 100%;
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 #poster-overlay {
   position: fixed;
   top: 0;
