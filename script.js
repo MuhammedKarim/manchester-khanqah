@@ -442,7 +442,7 @@ function initPrayerTimes() {
 
   async function pollTaraweehStateAndApply() {
     const now = new Date();
-    if (now.getHours() < 19 || now.getHours() > 22) return
+    // if (now.getHours() < 19 || now.getHours() > 22) return
     try {
       const res = await fetch(`https://taraweeh.muhammedkarim.workers.dev/state/manchester?ts=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
