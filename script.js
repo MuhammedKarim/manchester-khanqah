@@ -493,7 +493,7 @@ function initPrayerTimes() {
   checkMakroohPoster();
   preloadAndCheckPosters();
   checkLiveStatusAndToggleOverlay();
-  pollTaraweehStateAndApply();
+  // pollTaraweehStateAndApply();
   
   setInterval(updateClock, 1000);
   setInterval(loadPrayerTimes, 1000);
@@ -504,5 +504,5 @@ function initPrayerTimes() {
   setInterval(refreshPosters, 600000);
   setInterval(checkLiveStatusAndToggleOverlay, 5000);
   setInterval(checkVersionAndReload, 60000);
-  setInterval(pollTaraweehStateAndApply, 2000);
+  // setInterval(pollTaraweehStateAndApply, 2000);
 }
