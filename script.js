@@ -180,7 +180,7 @@ function initPrayerTimes() {
       .catch(err => console.error("Dhikr fetch error:", err));
   }
 
-  const MAX_POSTERS = 5;
+  const MAX_POSTERS = 15;
   let posterImages = [];
   let posterIndex = 0;
 
@@ -253,7 +253,7 @@ function initPrayerTimes() {
         overlay.style.display = 'none';
         posterIndex++;
       }, 1500);
-    }, 30000);
+    }, 60000);
   }
   
   let posterCycleInterval = null;
@@ -265,7 +265,7 @@ function initPrayerTimes() {
       if (!overlay.style.display || overlay.style.display === 'none') {
         cyclePosters();
       }
-    }, 60000);
+    }, 80000);
   }
 
   function stopPosterCycle() {
@@ -530,7 +530,7 @@ function initPrayerTimes() {
   setInterval(checkMakroohPoster, 1000);
   setInterval(checkFridayDuroodOverlay, 1000);
   setInterval(fetchPrayerTimes, 300000);
-  setInterval(refreshPosters, 600000);
+  setInterval(refreshPosters, 3600000);
   setInterval(checkLiveStatusAndToggleOverlay, 5000);
   setInterval(checkVersionAndReload, 60000);
   // setInterval(pollTaraweehStateAndApply, 2000);
