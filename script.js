@@ -455,7 +455,7 @@ function initPrayerTimes() {
   function startKkBayanRotation() {
     if (kkBayanRotateInterval) return;
 
-    const files = ['kk-bayan2', 'kk-bayan3'];
+    const files = ['kk-bayan2'];
 
     showKalimatImage(files[kkBayanIndex]);
 
