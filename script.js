@@ -344,12 +344,13 @@ function initPrayerTimes() {
         dimOverlay.style.display = shouldShowDim ? 'block' : 'none';
         dimOverlay.style.opacity = shouldShowDim ? '1' : '0';
         if (status.isLive) {
-          stopPosterCycle();
+          // stopPosterCycle();
           startKalimatPolling();
         } else {
           stopKalimatPolling();
-          startPrayerPosterCycle();
+          // startPrayerPosterCycle();
         }
+        startPrayerPosterCycle();
       })
       .catch(err => {
         console.error('Failed to fetch live status:', err);
