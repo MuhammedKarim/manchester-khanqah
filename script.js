@@ -208,7 +208,7 @@ function initPrayerTimes() {
       .catch(err => console.error("Dhikr fetch error:", err));
   }
 
-  const MAX_POSTERS = 15;
+  const MAX_POSTERS = 5;
   let posterImages = [];
   let posterIndex = 0;
 
@@ -358,6 +358,8 @@ function initPrayerTimes() {
 
   let currentKalimat = null;
   let kalimatInterval = null;
+  let kkBayanRotateInterval = null;
+  let kkBayanIndex = 0;
 
   function fetchKalimatStatus() {
     fetch('https://live-status.muhammedkarim.workers.dev')
@@ -367,6 +369,8 @@ function initPrayerTimes() {
         const kalimatImg = kalimatOverlay.querySelector('.kalimat-img');
 
         if (!status.isLive || !status.kalimat) {
+          stopKkBayanRotation();
+
           kalimatOverlay.style.opacity = '0';
           setTimeout(() => {
             kalimatOverlay.style.display = 'none';
@@ -374,6 +378,16 @@ function initPrayerTimes() {
           currentKalimat = null;
           return;
         }
+
+        if (status.kalimat === 'kk-bayan') {
+          if (currentKalimat !== 'kk-bayan') {
+            currentKalimat = 'kk-bayan';
+            startKkBayanRotation();
+          }
+          return;
+        }
+
+        stopKkBayanRotation();
 
         if (status.kalimat !== currentKalimat) {
           if (status.kalimat === 'blank' && (currentKalimat === 'Dua' || currentKalimat === '')) status.kalimat = ''
@@ -408,6 +422,48 @@ function initPrayerTimes() {
       });
   }
 
+  function stopKkBayanRotation() {
+    if (kkBayanRotateInterval) {
+      clearInterval(kkBayanRotateInterval);
+      kkBayanRotateInterval = null;
+    }
+    kkBayanIndex = 0;
+  }
+
+  function showKalimatImage(fileName) {
+    const kalimatOverlay = document.getElementById('kalimat-overlay');
+    const kalimatImg = kalimatOverlay.querySelector('.kalimat-img');
+
+    const kalimatPath = `kalimat/${fileName}.jpg?t=${Date.now()}`;
+
+    const img = new Image();
+    img.onload = () => {
+      kalimatImg.src = kalimatPath;
+      kalimatOverlay.style.setProperty('--kalimat-url', `url(${kalimatPath})`);
+      kalimatOverlay.style.display = 'block';
+      setTimeout(() => {
+        kalimatOverlay.style.opacity = '1';
+      }, 10);
+    };
+    img.onerror = () => {
+      console.warn(`Missing kalimat image: ${kalimatPath}`);
+    };
+    img.src = kalimatPath;
+  }
+
+  function startKkBayanRotation() {
+    if (kkBayanRotateInterval) return;
+
+    const files = ['kk-bayan2', 'kk-bayan3'];
+
+    showKalimatImage(files[kkBayanIndex]);
+
+    kkBayanRotateInterval = setInterval(() => {
+      kkBayanIndex = (kkBayanIndex + 1) % files.length;
+      showKalimatImage(files[kkBayanIndex]);
+    }, 30000);
+  }
+
   function startKalimatPolling() {
     if (!kalimatInterval) {
       kalimatInterval = setInterval(fetchKalimatStatus, 1000);
@@ -418,6 +474,8 @@ function initPrayerTimes() {
     clearInterval(kalimatInterval);
     kalimatInterval = null;
     currentKalimat = null;
+    stopKkBayanRotation();
+
     const overlay = document.getElementById('kalimat-overlay');
     overlay.style.opacity = '0';
     setTimeout(() => {
