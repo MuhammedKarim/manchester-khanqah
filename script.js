@@ -214,108 +214,153 @@ function initPrayerTimes() {
       .catch(err => console.error("Dhikr fetch error:", err));
   }
 
-  const MAX_POSTERS = 5;
-  let posterImages = [];
-  let posterIndex = 0;
+  let playlistItems = [];
+  let playlistIndex = 0;
+  let playlistTimeout = null;
+  let currentPlaylistJson = null;
+  let playlistCheckInterval = null;
 
-  function shouldIncludePhotosPoster() {
-    const now = new Date();
-    const day = now.getDay();
-    const minutes = now.getHours() * 60 + now.getMinutes();
+  async function loadPosterConfig() {
+    try {
+      const res = await fetch(`https://manchester-posters.muhammedkarim.workers.dev/playlist?t=${Date.now()}`, {
+        cache: "no-store"
+      });
 
-    // if (day === 4 && minutes >= 1260) return true;
-    // if (day === 5 && minutes <= 840) return true;
-    return false;
-  }
+      const config = await res.json();
+      currentPlaylistJson = JSON.stringify(config);
 
-  function preloadAndCheckPosters() {
-    let loaded = 0;
-    posterImages = [];
+      playlistItems = config.items
+        .filter(item => item.enabled)
+        .sort((a, b) => a.order - b.order);
 
-    const max = MAX_POSTERS;
-    const total = shouldIncludePhotosPoster() ? max + 1 : max;
-
-    for (let i = 1; i <= max; i++) {
-      const url = `posters/${i}.jpg?t=${Date.now()}`;
-      const img = new Image();
-      img.onload = () => {
-        posterImages.push(url);
-        loaded++;
-        if (loaded === total) startPrayerPosterCycle();
-      };
-      img.onerror = () => {
-        loaded++;
-        if (loaded === total) startPrayerPosterCycle();
-      };
-      img.src = url;
-    }
-
-    if (shouldIncludePhotosPoster()) {
-      const url = `posters/photos.jpg?t=${Date.now()}`;
-      const img = new Image();
-      img.onload = () => {
-        posterImages.push(url);
-        loaded++;
-        if (loaded === total) startPrayerPosterCycle();
-      };
-      img.onerror = () => {
-        loaded++;
-        if (loaded === total) startPrayerPosterCycle();
-      };
-      img.src = url;
+      preloadPlaylistImages();
+      startPlaylistCycle();
+    } catch (err) {
+      console.error("Failed to load poster config:", err);
     }
   }
 
-  function cyclePosters() {
-    if (posterImages.length === 0) return;
+  async function checkPlaylistChanged() {
+    try {
+      const res = await fetch(
+        `https://manchester-posters.muhammedkarim.workers.dev/playlist?t=${Date.now()}`,
+        { cache: "no-store" }
+      );
 
-    const overlay = document.getElementById('poster-overlay');
-    const img = overlay.querySelector('.poster-img');
-    const url = posterImages[posterIndex % posterImages.length];
-    const imgUrl = `${url}?t=${Date.now()}`;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    overlay.style.setProperty('--poster-url', `url(${imgUrl})`);
-    img.src = imgUrl;
-    overlay.style.display = 'block';
-    setTimeout(() => {
-      overlay.style.opacity = '1';
-    }, 10);
+      const latestConfig = await res.json();
+      const latestJson = JSON.stringify(latestConfig);
 
-    setTimeout(() => {
-      overlay.style.opacity = '0';
-      setTimeout(() => {
-        overlay.style.display = 'none';
-        posterIndex++;
-      }, 1500);
-    }, 60000);
-  }
-  
-  let posterCycleInterval = null;
-  function startPrayerPosterCycle() {
-    if (posterImages.length === 0 || posterCycleInterval) return;
-
-    posterCycleInterval = setInterval(() => {
-      const overlay = document.getElementById('poster-overlay');
-      if (!overlay.style.display || overlay.style.display === 'none') {
-        cyclePosters();
+      if (currentPlaylistJson === null) {
+        currentPlaylistJson = latestJson;
+        return;
       }
-    }, 80000);
+
+      if (latestJson !== currentPlaylistJson) {
+        console.log("Playlist changed. Restarting playlist.");
+
+        currentPlaylistJson = latestJson;
+
+        if (playlistTimeout) {
+          clearTimeout(playlistTimeout);
+          playlistTimeout = null;
+        }
+
+        playlistIndex = 0;
+
+        playlistItems = latestConfig.items
+          .filter(item => item.enabled)
+          .sort((a, b) => a.order - b.order);
+
+        preloadPlaylistImages();
+        showTimetable();
+        startPlaylistCycle();
+      }
+    } catch (err) {
+      console.error("Failed to check playlist changes:", err);
+    }
   }
 
-  function stopPosterCycle() {
-    if (posterCycleInterval) {
-      clearInterval(posterCycleInterval);
-      posterCycleInterval = null;
-    }
-    const overlay = document.getElementById('poster-overlay');
-    overlay.style.opacity = '0';
+  function preloadPlaylistImages() {
+    playlistItems
+      .filter(item => item.type === "poster" && item.imageUrl)
+      .forEach(item => {
+        const img = new Image();
+        img.src = item.imageUrl;
+      });
+  }
+
+  function showTimetable() {
+    const overlay = document.getElementById("poster-overlay");
+    overlay.style.opacity = "0";
+
     setTimeout(() => {
-      overlay.style.display = 'none';
+      overlay.style.display = "none";
     }, 1500);
   }
 
-  let makroohShowing = false;
+  function showPoster(item) {
+    const overlay = document.getElementById("poster-overlay");
+    const img = overlay.querySelector(".poster-img");
+    const imgUrl = `${item.imageUrl}?t=${Date.now()}`;
 
+    overlay.style.setProperty("--poster-url", `url(${imgUrl})`);
+    img.src = imgUrl;
+    overlay.style.display = "block";
+
+    setTimeout(() => {
+      overlay.style.opacity = "1";
+    }, 10);
+  }
+
+  function playCurrentItem() {
+    if (!playlistItems.length) return;
+
+    const item = playlistItems[playlistIndex % playlistItems.length];
+
+    if (item.type === "timetable") {
+      showTimetable();
+    }
+
+    if (item.type === "poster") {
+      showPoster(item);
+    }
+
+    playlistIndex++;
+
+    playlistTimeout = setTimeout(
+      playCurrentItem,
+      (item.durationSeconds || 20) * 1000
+    );
+  }
+  
+  function startPlaylistCycle() {
+    if (playlistTimeout || playlistItems.length === 0) return;
+    playCurrentItem();
+  }
+
+  function stopPosterCycle() {
+    if (playlistTimeout) {
+      clearTimeout(playlistTimeout);
+      playlistTimeout = null;
+    }
+
+    showTimetable();
+  }
+
+  function refreshPosters() {
+    if (playlistTimeout) {
+      clearTimeout(playlistTimeout);
+      playlistTimeout = null;
+    }
+
+    playlistIndex = 0;
+    loadPosterConfig();
+  }
+
+
+  let makroohShowing = false;
   function checkMakroohPoster() {
     const now = new Date();
     const { todayStr, tomorrowStr } = getTodayTomorrowStr();
@@ -350,13 +395,12 @@ function initPrayerTimes() {
         dimOverlay.style.display = shouldShowDim ? 'block' : 'none';
         dimOverlay.style.opacity = shouldShowDim ? '1' : '0';
         if (status.isLive) {
-          // stopPosterCycle();
+          stopPosterCycle();
           startKalimatPolling();
         } else {
           stopKalimatPolling();
-          // startPrayerPosterCycle();
+          startPlaylistCycle();
         }
-        startPrayerPosterCycle();
       })
       .catch(err => {
         console.error('Failed to fetch live status:', err);
@@ -565,7 +609,7 @@ function initPrayerTimes() {
     const now = new Date();
     // if (now.getHours() < 19 || now.getHours() > 22) return
     try {
-      const res = await fetch(`https://taraweeh.muhammedkarim.workers.dev/state/manchester`, { cache: "no-store" });
+      const res = await fetch(`https://taraweeh.muhammedkarim.workers.dev/state/manchester?ts=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const state = await res.json();
       if (state.manualEnabled) {
@@ -590,12 +634,6 @@ function initPrayerTimes() {
       });
   }
   
-  function refreshPosters() {
-    posterImages = [];
-    posterIndex = 0;
-    preloadAndCheckPosters();
-  }
-  
   let currentVersion = null;
   function checkVersionAndReload() {
     fetch(`version.json?t=${Date.now()}`)
@@ -613,7 +651,7 @@ function initPrayerTimes() {
   loadPrayerTimes();
   checkDhikr();
   checkMakroohPoster();
-  preloadAndCheckPosters();
+  loadPosterConfig();
   checkLiveStatusAndToggleOverlay();
   // pollTaraweehStateAndApply();
   
@@ -623,8 +661,8 @@ function initPrayerTimes() {
   setInterval(checkMakroohPoster, 1000);
   setInterval(checkFridayDuroodOverlay, 1000);
   setInterval(fetchPrayerTimes, 300000);
-  setInterval(refreshPosters, 3600000);
+  setInterval(checkPlaylistChanged, 60000);
   setInterval(checkLiveStatusAndToggleOverlay, 5000);
   setInterval(checkVersionAndReload, 60000);
-  // setInterval(pollTaraweehStateAndApply, 2000);
+  // setInterval(pollTaraweehStateAndApply, 1000);
 }

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poster Admin</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f2e1d;
+      color: white;
+    }
+
+    header {
+      padding: 20px;
+      background: linear-gradient(90deg, #0d4d2c, #176b3a);
+      border-bottom: 3px solid #d4af37;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #e5c96a;
+      letter-spacing: 0.5px;
+    }
+
+    main {
+      padding: 20px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      background: #164229;
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.08);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) 110px 110px 170px;
+      gap: 18px;
+      align-items: start;
+      cursor: grab;
+    }
+
+    .card.dragging {
+      opacity: 0.45;
+    }
+
+    .preview {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .drag-handle {
+      font-size: 24px;
+      color: #e5c96a;
+      cursor: grab;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .card img {
+      width: 130px;
+      height: 231px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #333;
+    }
+
+    .details {
+      min-width: 0;
+    }
+
+    input,
+    select,
+    button {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
+
+    input,
+    select {
+      background: #244b34;
+      color: white;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    input[type="file"] {
+      max-width: 100%;
+      background: #244b34;
+      color: white;
+    }
+
+    button {
+      cursor: pointer;
+      background: #d4af37;
+      color: #102515;
+      font-weight: bold;
+      transition: all 0.15s ease;
+    }
+
+    button:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    button.danger {
+      background: #b33a3a;
+      color: white;
+    }
+
+    button.secondary {
+      background: #215236;
+      color: white;
+    }
+
+    button.success {
+      background: #1f7a45;
+      color: white;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    label {
+      font-size: 13px;
+      opacity: 0.85;
+      display: block;
+      margin-bottom: 4px;
+      color: #e5c96a;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .timetable-label {
+      font-size: 22px;
+      font-weight: bold;
+      color: #e5c96a;
+    }
+
+    .status {
+      margin-bottom: 16px;
+      color: #e5c96a;
+      font-size: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .small {
+      font-size: 12px;
+      opacity: 0.75;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      max-width: 100%;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        padding: 14px;
+      }
+
+      header {
+        padding: 16px;
+      }
+
+      .top-actions {
+        flex-direction: column;
+      }
+
+      .top-actions button {
+        width: 100%;
+      }
+
+      .card {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .preview {
+        align-items: center;
+      }
+
+      .card img {
+        width: min(220px, 100%);
+        height: auto;
+        aspect-ratio: 1080 / 1920;
+      }
+
+      .actions button {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Poster Admin</h1>
+    <button onclick="loadConfig()">Reload</button>
+  </header>
+
+  <main>
+    <div class="top-actions">
+      <button onclick="addTimetableSlot()">Add Timetable Slot</button>
+      <button onclick="addPoster()">Add Poster</button>
+      <button class="success" onclick="saveConfig()">Save to Screens</button>
+    </div>
+
+    <div id="status" class="status">Loading...</div>
+
+    <div id="items"></div>
+  </main>
+
+  <script>
+    const API_BASE = "https://manchester-posters.muhammedkarim.workers.dev";
+
+    let config = {
+      items: []
+    };
+
+    let draggedIndex = null;
+
+    async function loadConfig() {
+      setStatus("Loading playlist...");
+
+      try {
+        const res = await fetch(`${API_BASE}/playlist?t=${Date.now()}`, {
+          cache: "no-store"
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        config = await res.json();
+
+        ensureIds();
+        sortItems();
+        renderItems();
+
+        setStatus("Loaded from Screens.");
+      } catch (err) {
+        console.error(err);
+        setStatus("Failed to load playlist.");
+        alert("Failed to load playlist from Screens.");
+      }
+    }
+
+    async function saveConfig() {
+      ensureIds();
+      normaliseOrders();
+
+      setStatus("Saving...");
+
+      try {
+        const res = await fetch(`${API_BASE}/playlist`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(config)
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        setStatus("Saved to Screens.");
+        alert("Saved.");
+      } catch (err) {
+        console.error(err);
+        setStatus("Save failed.");
+        alert("Save failed.");
+      }
+    }
+
+    async function uploadImage(event, index) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      setStatus(`Uploading ${file.name}...`);
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch(`${API_BASE}/upload`, {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.imageUrl) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+
+        config.items[index].imageUrl = data.imageUrl;
+
+        setStatus("Image uploaded. Click Save to Screens to save the playlist.");
+        renderItems();
+      } catch (err) {
+        console.error(err);
+        setStatus("Upload failed.");
+        alert("Upload failed.");
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    function sortItems() {
+      config.items.sort((a, b) => a.order - b.order);
+    }
+
+    function normaliseOrders() {
+      sortItems();
+
+      config.items.forEach((item, index) => {
+        item.order = index + 1;
+      });
+    }
+
+    function ensureIds() {
+      config.items.forEach(item => {
+        if (!item.id) {
+          item.id = makeId(item.title || item.type || "item");
+        }
+      });
+    }
+
+    function renderItems() {
+      const container = document.getElementById("items");
+      container.innerHTML = "";
+
+      sortItems();
+
+      const timetableCount = config.items.filter(item => item.type === "timetable").length;
+
+      config.items.forEach((item, index) => {
+        const card = document.createElement("div");
+
+        card.className = "card";
+        card.draggable = true;
+        card.dataset.index = index;
+
+        card.addEventListener("dragstart", handleDragStart);
+        card.addEventListener("dragover", handleDragOver);
+        card.addEventListener("drop", handleDrop);
+        card.addEventListener("dragend", handleDragEnd);
+
+        const preview = document.createElement("div");
+        preview.className = "preview";
+
+        if (item.type === "poster") {
+          preview.innerHTML = `
+            <div class="drag-handle">☰</div>
+            <img src="${escapeHtml(item.imageUrl || "")}" onerror="this.style.opacity='0.2'">
+          `;
+        } else {
+          preview.innerHTML = `
+            <div class="drag-handle">☰</div>
+            <div class="timetable-label">Timetable</div>
+          `;
+        }
+
+        const details = document.createElement("div");
+        details.className = "details";
+
+        details.innerHTML = `
+          <div class="field">
+            <label>Title</label>
+            <input value="${escapeHtml(item.title || "")}"
+              onchange="updateItem(${index}, 'title', this.value)">
+          </div>
+
+          ${
+            item.type === "poster"
+              ? `
+                <div class="field">
+                  <label>Upload Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onchange="uploadImage(event, ${index})"
+                  >
+                  <div class="small">${escapeHtml(item.imageUrl || "No image uploaded yet")}</div>
+                </div>
+              `
+              : `
+                <div class="small">
+                  This slot shows the live prayer timetable.
+                </div>
+              `
+          }
+        `;
+
+        const duration = document.createElement("div");
+        duration.innerHTML = `
+          <div class="field">
+            <label>Seconds</label>
+            <input type="number" min="1" value="${item.durationSeconds || 20}"
+              onchange="updateItem(${index}, 'durationSeconds', Number(this.value))">
+          </div>
+        `;
+
+        const enabled = document.createElement("div");
+        enabled.innerHTML = `
+          <div class="field">
+            <label>Enabled</label>
+            <select onchange="updateItem(${index}, 'enabled', this.value === 'true')">
+              <option value="true" ${item.enabled ? "selected" : ""}>Yes</option>
+              <option value="false" ${!item.enabled ? "selected" : ""}>No</option>
+            </select>
+          </div>
+        `;
+
+        const canDelete =
+          item.type === "poster" ||
+          timetableCount > 1;
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        actions.innerHTML = `
+          <button class="secondary" onclick="moveItem(${index}, -1)">Up</button>
+          <button class="secondary" onclick="moveItem(${index}, 1)">Down</button>
+          ${
+            canDelete
+              ? `<button class="danger" onclick="deleteItem(${index})">Delete</button>`
+              : ""
+          }
+        `;
+
+        card.appendChild(preview);
+        card.appendChild(details);
+        card.appendChild(duration);
+        card.appendChild(enabled);
+        card.appendChild(actions);
+
+        container.appendChild(card);
+      });
+    }
+
+    function updateItem(index, key, value) {
+      config.items[index][key] = value;
+
+      if (key === "title") {
+        if (!config.items[index].id || config.items[index].id.startsWith("new-")) {
+          config.items[index].id = makeId(value);
+        }
+      }
+
+      renderItems();
+    }
+
+    function moveItem(index, direction) {
+      sortItems();
+
+      const newIndex = index + direction;
+
+      if (newIndex < 0 || newIndex >= config.items.length) return;
+
+      const temp = config.items[index];
+      config.items[index] = config.items[newIndex];
+      config.items[newIndex] = temp;
+
+      config.items.forEach((item, i) => {
+        item.order = i + 1;
+      });
+
+      renderItems();
+    }
+
+    function handleDragStart(event) {
+      draggedIndex = Number(event.currentTarget.dataset.index);
+      event.currentTarget.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+    }
+
+    function handleDragOver(event) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    }
+
+    function handleDrop(event) {
+      event.preventDefault();
+
+      const targetIndex = Number(event.currentTarget.dataset.index);
+
+      if (
+        draggedIndex === null ||
+        draggedIndex === targetIndex ||
+        Number.isNaN(targetIndex)
+      ) {
+        return;
+      }
+
+      sortItems();
+
+      const draggedItem = config.items.splice(draggedIndex, 1)[0];
+      config.items.splice(targetIndex, 0, draggedItem);
+
+      config.items.forEach((item, i) => {
+        item.order = i + 1;
+      });
+
+      draggedIndex = null;
+      renderItems();
+    }
+
+    function handleDragEnd(event) {
+      event.currentTarget.classList.remove("dragging");
+      draggedIndex = null;
+    }
+
+    function addTimetableSlot() {
+      sortItems();
+
+      config.items.push({
+        id: `timetable-${Date.now()}`,
+        type: "timetable",
+        title: "Prayer Timetable",
+        imageUrl: null,
+        durationSeconds: 20,
+        enabled: true,
+        order: config.items.length + 1
+      });
+
+      renderItems();
+    }
+
+    function addPoster() {
+      sortItems();
+
+      config.items.push({
+        id: `new-poster-${Date.now()}`,
+        type: "poster",
+        title: "New Poster",
+        imageUrl: "",
+        durationSeconds: 20,
+        enabled: true,
+        order: config.items.length + 1
+      });
+
+      renderItems();
+    }
+
+    function deleteItem(index) {
+      const item = config.items[index];
+
+      if (item.type === "timetable") {
+        const timetableCount = config.items.filter(i => i.type === "timetable").length;
+
+        if (timetableCount <= 1) {
+          alert("You must keep at least one timetable slot.");
+          return;
+        }
+      }
+
+      if (!confirm(`Delete "${item.title}" from the playlist?`)) return;
+
+      config.items.splice(index, 1);
+
+      config.items.forEach((item, i) => {
+        item.order = i + 1;
+      });
+
+      renderItems();
+    }
+
+    function makeId(text) {
+      return String(text || "item")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40) || `item-${Date.now()}`;
+    }
+
+    function setStatus(message) {
+      document.getElementById("status").textContent = message;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    loadConfig();
+  </script>
+</body>
+</html>
