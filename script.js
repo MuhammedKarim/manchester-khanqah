@@ -370,7 +370,7 @@ function initPrayerTimes() {
 
     const [h, m] = dhuhrStartStr.split(':').map(Number);
     const dhuhrStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
-    const makroohStart = new Date(dhuhrStart.getTime() - 10 * 60000); // 10 mins before
+    const makroohStart = new Date(dhuhrStart.getTime() - 60 * 60000); // 10 mins before
     const makroohEnd = new Date(dhuhrStart); // end at Dhuhr start
 
     if (now >= makroohStart && now < makroohEnd) {
